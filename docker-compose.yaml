@@ -1,0 +1,47 @@
+---
+version: "3"
+services:
+  mariadb:
+    image: linuxserver/mariadb
+    container_name: mariadb
+    env_file: uidgid.env
+    environment:
+      - MYSQL_ROOT_PASSWORD=ROOT_ACCESS_PASSWORD
+      - TZ=Europe/London
+      - MYSQL_DATABASE=piwigo #optional
+      - MYSQL_USER=piwigo #optional
+    volumes:
+      - ./config/mariadb:/config
+    restart: always
+  piwigo:
+    image: linuxserver/piwigo
+    container_name: piwigo
+    env_file: uidgid.env
+    environment:
+      - TZ=Europe/London
+    volumes:
+      - ./config/piwigo:/config
+      - ./pictures:/pictures
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.piwigo.tls=true"
+      - "traefik.http.routers.piwigo.entrypoints=websecure"
+      - "traefik.http.routers.piwigo.middlewares=auth@file"
+      - "traefik.http.routers.piwigo.rule=Host(`sonarr.home.alhome.uk`)"
+      - "traefik.http.services.piwigo.loadbalancer.server.port=8989"
+    networks:
+      - home
+
+# volumes:
+#   pictures:
+#     driver_opts:
+#       type: "nfs4"
+#       o: "addr=192.168.0.39,nolock,soft,rw"
+#       device: ":/volume1/Pictures"
+
+networks:
+  home:
+    external:
+      name: home
+
